@@ -1,0 +1,58 @@
+{
+  "name": "Student ticket -> agentops-loop -> Slack text",
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "student-ticket", "responseMode": "responseNode", "options": {}},
+      "id": "6f1c2a10-0000-4000-8000-000000000001",
+      "name": "Ticket webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "student-ticket"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.AGENTOPS_URL || 'http://host.docker.internal:8080' }}/hooks/ticket",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ticket: $json.body.ticket, role: $json.body.role || 'public' }) }}",
+        "options": {}
+      },
+      "id": "6f1c2a10-0000-4000-8000-000000000002",
+      "name": "POST /hooks/ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {"assignments": [
+          {"id": "a1", "name": "slack_text", "value": "={{ $json.slack_text }}", "type": "string"},
+          {"id": "a2", "name": "refused", "value": "={{ $json.refused }}", "type": "boolean"}
+        ]},
+        "options": {}
+      },
+      "id": "6f1c2a10-0000-4000-8000-000000000003",
+      "name": "Read slack_text",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {"respondWith": "json", "responseBody": "={{ { text: $json.slack_text } }}", "options": {}},
+      "id": "6f1c2a10-0000-4000-8000-000000000004",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 0]
+    }
+  ],
+  "connections": {
+    "Ticket webhook": {"main": [[{"node": "POST /hooks/ticket", "type": "main", "index": 0}]]},
+    "POST /hooks/ticket": {"main": [[{"node": "Read slack_text", "type": "main", "index": 0}]]},
+    "Read slack_text": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"},
+  "pinData": {}
+}
